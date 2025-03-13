@@ -1,0 +1,129 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  alamat    String?  
+  domisili  String?
+  role      String   @default("customer") // customer, admin, seller
+  isDeleted Int      @default(1) // 1 = aktif, 0 = tidak aktif
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logins    Login[]
+  products  Product[]
+  orders    Order[]
+  payments  Payment[]
+  reviews   Review[]
+}
+
+model Login {
+  id        Int      @id @default(autoincrement())
+  userId    Int      
+  user      User     @relation(fields: [userId], references: [id])
+  loginAt   DateTime @default(now()) 
+  status    String   @default("success") 
+  ipAddress String?  
+  device    String?  
+}
+
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String?
+  products    Product[]
+  createdAt   DateTime @default(now())
+}
+
+model Product {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  price       Decimal  @default(0.00)
+  stock       Int      @default(0)
+  categoryId  Int?     
+  category    Category? @relation(fields: [categoryId], references: [id]) // Diperbaiki
+  sellerId    Int?
+  seller      User?    @relation(fields: [sellerId], references: [id])
+  meta        ProductMeta[]
+  images      ProductImage[]
+  orderItems  OrderItem[]
+  reviews     Review[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ProductMeta {
+  id        Int      @id @default(autoincrement())
+  productId Int      
+  product   Product  @relation(fields: [productId], references: [id])
+  key       String  
+  value     String  
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  productId Int      
+  product   Product  @relation(fields: [productId], references: [id])
+  imageUrl  String  
+}
+
+model Order {
+  id          Int      @id @default(autoincrement())
+  userId      Int      
+  user        User     @relation(fields: [userId], references: [id])
+  totalAmount Decimal  @default(0.00)
+  status      String   @default("pending") // pending, processing, shipped, delivered, canceled
+  orderItems  OrderItem[]
+  payment     Payment?
+  createdAt   DateTime @default(now())
+}
+
+model OrderItem {
+  id         Int      @id @default(autoincrement())
+  orderId    Int      
+  order      Order    @relation(fields: [orderId], references: [id])
+  productId  Int      
+  product    Product  @relation(fields: [productId], references: [id])
+  quantity   Int      
+  price      Decimal  
+}
+
+model Payment {
+  id           Int      @id @default(autoincrement())
+  orderId      Int      @unique // Perbaikan: Tambahkan @unique untuk one-to-one
+  order        Order    @relation(fields: [orderId], references: [id])
+  userId       Int      
+  user         User     @relation(fields: [userId], references: [id])
+  paymentMethod String  
+  status       String   @default("pending") // pending, success, failed
+  transactionId String? @unique
+  createdAt    DateTime @default(now())
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int      
+  user      User     @relation(fields: [userId], references: [id])
+  productId Int      
+  product   Product  @relation(fields: [productId], references: [id])
+  rating    Int      @default(5)
+  comment   String?  
+  createdAt DateTime @default(now())
+}
+
